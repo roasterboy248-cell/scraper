@@ -1,0 +1,30 @@
+# Use the same base as Scrapling itself
+FROM python:3.12-slim-trixie
+
+# Avoid interactive prompts during build
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+WORKDIR /app
+
+# Install system dependencies needed by Playwright browsers
+RUN apt-get update && apt-get install -y \
+    curl wget git \
+    libnss3 libatk1.0-0 libatk-bridge2.0-0 \
+    libcups2 libdrm2 libxkbcommon0 libxcomposite1 \
+    libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Scrapling with all extras + FastAPI + uvicorn
+RUN pip install --no-cache-dir "scrapling[all]" fastapi uvicorn
+
+# Pre-install browser dependencies for Scrapling
+RUN scrapling install || true
+
+# Copy our API
+COPY main.py .
+
+EXPOSE 10000
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "10000"]
